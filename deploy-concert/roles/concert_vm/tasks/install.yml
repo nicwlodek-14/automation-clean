@@ -57,6 +57,11 @@
     # Note: There are some workarounds in this task to get ansible to play nicely with the Concert installation.
     # 1. Need to use shell with 'bash -l' so there is a login shell and the users environment is setup correctly
     #    and the users setup scripts are run.
+    # 2. The Concert setup script's internal k3s health check calls /usr/local/bin/kubectl without
+    #    KUBECONFIG set (the script sets it at line ~1000, after the health check function at line ~355).
+    #    We export KUBECONFIG inline in the command so it is present from the very first line of the
+    #    script regardless of what bash -l sources or overrides.
+    # 3. We retry up to 3 times with a 30s pause to handle any remaining k3s startup race on fresh VMs.
     - name: Install Concert
       # no_log: true
       environment:
@@ -64,11 +69,12 @@
         REG_PASS: "{{ concert_registry_password }}"
         # Ansible's environment doesn't include /usr/local/bin where kubectl lives; add it manually.
         PATH: "/usr/local/bin:{{ ansible_facts['env']['PATH'] | default('/usr/bin:/bin') }}"
-        # The Concert setup script runs its own k3s health check using kubectl.
-        # Without KUBECONFIG set it cannot reach the k3s API server and times out.
-        KUBECONFIG: "{{ local_k3s_kubeconfig_file_path }}"
       ansible.builtin.shell:
-        cmd: "bash -l -c '{{ concert_install_dir }}/ibm-concert/bin/setup --license_acceptance=y --username={{ concert_default_username }} --password={{ concert_default_password }}'"
+        cmd: "bash -l -c 'export KUBECONFIG={{ local_k3s_kubeconfig_file_path }}; {{ concert_install_dir }}/ibm-concert/bin/setup --license_acceptance=y --username={{ concert_default_username }} --password={{ concert_default_password }}'"
+      register: concert_install_result
+      until: concert_install_result.rc == 0
+      retries: 3
+      delay: 30
 
     - name: Update configmap app-cfg-cm to allow insecure connection from Instana and restart roja-ingestion
       block:
