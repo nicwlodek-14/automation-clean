@@ -1,0 +1,13 @@
+{
+  "concert-v300": {
+    "hosts": {
+      "concert": {
+        "ansible_host": "HOST IP HERE",
+        "ansible_user": "root",
+        "ansible_ssh_pass": "ROOT PASSSWORD",
+        "ansible_become_pass": "ROOT PASSSWORD",
+        "host_fqdn": "HOST DOMAIN HERE OR IP"
+      }
+    }
+  }
+}
