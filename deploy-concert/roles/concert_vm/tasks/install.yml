@@ -54,16 +54,18 @@
         - { key: "CONCERT_NAMESPACE", value: "{{ concert_namespace }}" }
 
 
-    # The Concert manage-prereqs-vm script hardcodes /usr/local/bin/kubectl in its health check
-    # (line ~355). On this platform k3s installs to /usr/local/bin/k3s and creates its kubectl
-    # symlink in /usr/bin — so the health check always fails on a fresh install.
-    # We patch the script to replace /usr/local/bin/kubectl with /usr/local/bin/k3s kubectl
-    # so the health check uses the correct binary.
-    - name: Patch manage-prereqs-vm to use k3s kubectl instead of /usr/local/bin/kubectl
-      ansible.builtin.replace:
-        path: "{{ concert_install_dir }}/ibm-concert/bin/manage-prereqs-vm"
-        regexp: '/usr/local/bin/kubectl'
-        replace: '/usr/local/bin/k3s kubectl'
+    # The Concert manage-prereqs-vm script hardcodes /usr/local/bin/kubectl in its health check.
+    # k3s installs to /usr/local/bin/k3s — there is no /usr/local/bin/kubectl on a fresh VM.
+    # We install a small wrapper script at that path that delegates to k3s kubectl.
+    # The wrapper is safe to create before k3s is installed because the Concert setup script
+    # installs k3s itself before running the health check.
+    - name: Create /usr/local/bin/kubectl wrapper for Concert health check
+      ansible.builtin.copy:
+        dest: /usr/local/bin/kubectl
+        mode: "0755"
+        content: |
+          #!/bin/bash
+          exec /usr/local/bin/k3s kubectl "$@"
 
     # Note: There are some workarounds in this task to get ansible to play nicely with the Concert installation.
     # 1. Need to use shell with 'bash -l' so there is a login shell and the users environment is setup correctly
