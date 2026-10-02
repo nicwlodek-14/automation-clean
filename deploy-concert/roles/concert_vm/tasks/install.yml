@@ -54,26 +54,6 @@
         - { key: "CONCERT_NAMESPACE", value: "{{ concert_namespace }}" }
 
 
-    # The Concert setup script calls `kubectl` directly. k3s only installs /usr/local/bin/k3s,
-    # so we create a symlink so the installer can find it.
-    - name: Create kubectl symlink to k3s
-      ansible.builtin.file:
-        src: /usr/local/bin/k3s
-        dest: /usr/local/bin/kubectl
-        state: link
-
-    # Wait for k3s to be fully ready before running the Concert setup script.
-    # The installer performs its own k3s health check and will fail if the node
-    # is not yet in Ready state, even though the k3s service is already running.
-    - name: Wait for k3s node to be Ready
-      ansible.builtin.shell:
-        cmd: "/usr/local/bin/k3s kubectl get nodes --no-headers | grep -c ' Ready '"
-      register: k3s_ready
-      until: k3s_ready.stdout | int >= 1
-      retries: 30
-      delay: 10
-      changed_when: false
-
     # Note: There are some workarounds in this task to get ansible to play nicely with the Concert installation.
     # 1. Need to use shell with 'bash -l' so there is a login shell and the users environment is setup correctly
     #    and the users setup scripts are run.
