@@ -76,6 +76,9 @@
         REG_PASS: "{{ concert_registry_password }}"
         # Ansible's environment doesn't include /usr/local/bin where kubectl lives; add it manually.
         PATH: "/usr/local/bin:{{ ansible_facts['env']['PATH'] | default('/usr/bin:/bin') }}"
+        # The Concert setup script runs its own k3s health check using kubectl.
+        # Without KUBECONFIG set it cannot reach the k3s API server and times out.
+        KUBECONFIG: "{{ local_k3s_kubeconfig_file_path }}"
       ansible.builtin.shell:
         cmd: "bash -l -c '{{ concert_install_dir }}/ibm-concert/bin/setup --license_acceptance=y --username={{ concert_default_username }} --password={{ concert_default_password }}'"
 
