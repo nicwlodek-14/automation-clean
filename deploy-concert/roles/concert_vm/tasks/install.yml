@@ -67,6 +67,14 @@
           #!/bin/bash
           exec /usr/local/bin/k3s kubectl "$@"
 
+    # On re-runs, Kubernetes Jobs are immutable — the Concert setup script may fail with
+    # "spec.template: field is immutable" if a stale solis-mgmt-job exists in the platform-hub
+    # namespace from a previous partial run. Delete it if present so the installer can recreate it.
+    - name: Delete stale solis-mgmt-job if it exists (safe on first run — ignores 404)
+      ansible.builtin.shell:
+        cmd: "bash -l -c 'export KUBECONFIG={{ local_k3s_kubeconfig_file_path }}; /usr/local/bin/kubectl delete job solis-mgmt-job -n platform-hub --ignore-not-found=true'"
+      changed_when: false
+
     # Note: There are some workarounds in this task to get ansible to play nicely with the Concert installation.
     # 1. Need to use shell with 'bash -l' so there is a login shell and the users environment is setup correctly
     #    and the users setup scripts are run.
