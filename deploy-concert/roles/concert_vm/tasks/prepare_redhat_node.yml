@@ -1,3 +1,12 @@
+# cp.icr.io resolves to an internal proxy IP (10.249.64.12) in some ITZ network environments
+# that does not forward traffic. Override with the real public IP so k3s can pull images.
+- name: Ensure cp.icr.io resolves to its public IP in /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '\bcp\.icr\.io\b'
+    line: "169.60.98.83 cp.icr.io"
+    state: present
+
 - name: Disable SELinux in /etc/selinux/config
   ansible.posix.selinux:
     state: disabled
