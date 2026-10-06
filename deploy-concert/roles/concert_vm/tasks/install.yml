@@ -91,9 +91,6 @@
       ansible.builtin.shell:
         cmd: "bash -l -c 'export KUBECONFIG={{ local_k3s_kubeconfig_file_path }}; {{ concert_install_dir }}/ibm-concert/bin/setup --license_acceptance=y --username={{ concert_default_username }} --password={{ concert_default_password }}'"
       register: concert_install_result
-      until: concert_install_result.rc == 0
-      retries: 3
-      delay: 30
 
     - name: Update configmap app-cfg-cm to allow insecure connection from Instana and restart roja-ingestion
       block:
